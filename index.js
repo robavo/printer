@@ -89,42 +89,30 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`PRINTER SERVICE running on http://localhost:${PORT}`)
-  printSamples()
+  // printSamples()
 })
 
 async function printSamples() {
   const samples = []
 
   if (PRINTER_PT) {
-    samples.push({
-      label: 'asset',
-      printer: PRINTER_PT,
-      fn: () => labels.asset({ serial: 'SB-0001', name: 'Robot Arm A', date: '2026-03-30' })
-    })
+    samples.push({ label: 'asset', printer: PRINTER_PT, buf: labels.asset({ serial: 'SB-0001', name: 'Robot Arm A', date: '2026-03-30' }) })
   }
 
   if (PRINTER_QL) {
-    samples.push({
-      label: 'sku',
-      printer: PRINTER_QL,
-      fn: () => labels.sku({ sku: 'WH-100', name: 'Widget Handle' })
-    })
-    samples.push({
-      label: 'kit',
-      printer: PRINTER_QL,
-      fn: () => labels.kit({ sku: 'KT-200', name: 'Assembly Kit', date: '2026-03-30', who: 'Rob' })
-    })
+    samples.push({ label: 'sku', printer: PRINTER_QL, buf: labels.sku({ sku: 'WH-100', name: 'Widget Handle' }) })
+    samples.push({ label: 'kit', printer: PRINTER_QL, buf: labels.kit({ sku: 'KT-200', name: 'Assembly Kit', date: '2026-03-30', who: 'Rob', assembly: true }) })
   }
 
   if (samples.length === 0) {
-    console.log('== No PRINTER_QL or PRINTER_PT env vars set, skipping sample prints')
+    console.log('== No PRINTER_QL or PRINTER_PT env var set, skipping sample prints')
     return
   }
 
   for (const s of samples) {
     try {
       console.log(`>> SAMPLE ${s.label} -> ${s.printer}`)
-      await sendToPrinter(s.printer, s.fn())
+      await sendToPrinter(s.printer, s.buf)
       console.log(`== SAMPLE ${s.label} printed`)
     } catch (err) {
       console.log(`!! SAMPLE ${s.label} failed: ${err.message}`)

@@ -25,7 +25,7 @@
 Content-Type: application/json</pre>
 
   <h2 class="type">asset</h2>
-  <p>Prints to <strong>Brother P-900W</strong> (36mm tape)</p>
+  <p>Prints to <strong>Brother P-900W</strong> (36mm yellow tape)</p>
   <table>
     <tr><th>Field</th><th>Required</th><th>Description</th></tr>
     <tr><td class="field">type</td><td>yes</td><td>"asset"</td></tr>
@@ -43,7 +43,7 @@ Content-Type: application/json</pre>
 }</pre>
 
   <h2 class="type">sku</h2>
-  <p>Prints to <strong>Brother QL-810W</strong> (62mm x 100mm label)</p>
+  <p>Prints to <strong>Brother QL-810W</strong> (38mm continuous tape)</p>
   <table>
     <tr><th>Field</th><th>Required</th><th>Description</th></tr>
     <tr><td class="field">type</td><td>yes</td><td>"sku"</td></tr>
@@ -59,7 +59,7 @@ Content-Type: application/json</pre>
 }</pre>
 
   <h2 class="type">kit</h2>
-  <p>Prints to <strong>Brother QL-810W</strong> (62mm x 100mm label)</p>
+  <p>Prints to <strong>Brother QL-810W</strong> (38mm continuous tape)</p>
   <table>
     <tr><th>Field</th><th>Required</th><th>Description</th></tr>
     <tr><td class="field">type</td><td>yes</td><td>"kit"</td></tr>
@@ -68,6 +68,7 @@ Content-Type: application/json</pre>
     <tr><td class="field">name</td><td>yes</td><td>Kit name</td></tr>
     <tr><td class="field">date</td><td>yes</td><td>Assembly date</td></tr>
     <tr><td class="field">who</td><td>yes</td><td>Assembled by</td></tr>
+    <tr><td class="field">assembly</td><td>no</td><td>If true, adds assembled checkbox + name line</td></tr>
   </table>
   <pre>{
   "type": "kit",
@@ -75,7 +76,8 @@ Content-Type: application/json</pre>
   "sku": "KT-200",
   "name": "Assembly Kit",
   "date": "2026-03-30",
-  "who": "Rob"
+  "who": "Rob",
+  "assembly": true
 }</pre>
 
   <h2>curl examples</h2>
@@ -89,7 +91,7 @@ curl -X POST http://localhost:3000/print \
 
 curl -X POST http://localhost:3000/print \
   -H 'Content-Type: application/json' \
-  -d '{"type":"kit","printer":"10.10.0.4","sku":"KT-200","name":"Assembly Kit","date":"2026-03-30","who":"Rob"}'</pre>
+  -d '{"type":"kit","printer":"10.10.0.4","sku":"KT-200","name":"Assembly Kit","date":"2026-03-30","who":"Rob","assembly":true}'</pre>
 
   <p class="note">Set PRINTER_QL and PRINTER_PT env vars to print sample labels on startup.</p>
 </body>
