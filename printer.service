@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=rob
-WorkingDirectory=/home/rob/printer
+User=sb
+WorkingDirectory=/home/sb/printer
 ExecStart=/usr/bin/node index.js
 Restart=on-failure
 RestartSec=5
