@@ -1,0 +1,17 @@
+[Unit]
+Description=Shelfbot Printer Service
+After=network.target
+
+[Service]
+Type=simple
+User=rob
+WorkingDirectory=/home/rob/printer
+ExecStart=/usr/bin/node index.js
+Restart=on-failure
+RestartSec=5
+Environment=PORT=3000
+Environment=PRINTER_QL=192.168.4.6
+Environment=PRINTER_PT=192.168.4.8
+
+[Install]
+WantedBy=multi-user.target
