@@ -1,0 +1,9 @@
+{
+  "name": "printer",
+  "version": "1.0.0",
+  "description": "Brother label printer service (QL-810W + P-900W)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}

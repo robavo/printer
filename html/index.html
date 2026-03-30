@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Printer Service</title>
+  <style>
+    body { font-family: monospace; max-width: 720px; margin: 40px auto; padding: 0 20px; background: #111; color: #eee; }
+    h1 { color: #fff; }
+    h2 { color: #aaa; margin-top: 32px; }
+    pre { background: #222; padding: 16px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+    code { color: #7ef; }
+    .field { color: #fa5; }
+    .type { color: #8f8; font-weight: bold; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    th, td { text-align: left; padding: 6px 12px; border-bottom: 1px solid #333; }
+    th { color: #aaa; }
+    .note { color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Printer Service</h1>
+  <p>POST JSON to <code>/print</code> to print a label.</p>
+
+  <h2>Endpoint</h2>
+  <pre>POST /print
+Content-Type: application/json</pre>
+
+  <h2 class="type">asset</h2>
+  <p>Prints to <strong>Brother P-900W</strong> (36mm tape)</p>
+  <table>
+    <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+    <tr><td class="field">type</td><td>yes</td><td>"asset"</td></tr>
+    <tr><td class="field">printer</td><td>yes</td><td>Printer IP address</td></tr>
+    <tr><td class="field">serial</td><td>yes</td><td>Asset serial number</td></tr>
+    <tr><td class="field">name</td><td>yes</td><td>Asset name</td></tr>
+    <tr><td class="field">date</td><td>yes</td><td>Date string</td></tr>
+  </table>
+  <pre>{
+  "type": "asset",
+  "printer": "10.10.0.5",
+  "serial": "SB-0001",
+  "name": "Robot Arm A",
+  "date": "2026-03-30"
+}</pre>
+
+  <h2 class="type">sku</h2>
+  <p>Prints to <strong>Brother QL-810W</strong> (62mm x 100mm label)</p>
+  <table>
+    <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+    <tr><td class="field">type</td><td>yes</td><td>"sku"</td></tr>
+    <tr><td class="field">printer</td><td>yes</td><td>Printer IP address</td></tr>
+    <tr><td class="field">sku</td><td>yes</td><td>SKU code</td></tr>
+    <tr><td class="field">name</td><td>yes</td><td>Product name</td></tr>
+  </table>
+  <pre>{
+  "type": "sku",
+  "printer": "10.10.0.4",
+  "sku": "WH-100",
+  "name": "Widget Handle"
+}</pre>
+
+  <h2 class="type">kit</h2>
+  <p>Prints to <strong>Brother QL-810W</strong> (62mm x 100mm label)</p>
+  <table>
+    <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+    <tr><td class="field">type</td><td>yes</td><td>"kit"</td></tr>
+    <tr><td class="field">printer</td><td>yes</td><td>Printer IP address</td></tr>
+    <tr><td class="field">sku</td><td>yes</td><td>SKU code</td></tr>
+    <tr><td class="field">name</td><td>yes</td><td>Kit name</td></tr>
+    <tr><td class="field">date</td><td>yes</td><td>Assembly date</td></tr>
+    <tr><td class="field">who</td><td>yes</td><td>Assembled by</td></tr>
+  </table>
+  <pre>{
+  "type": "kit",
+  "printer": "10.10.0.4",
+  "sku": "KT-200",
+  "name": "Assembly Kit",
+  "date": "2026-03-30",
+  "who": "Rob"
+}</pre>
+
+  <h2>curl examples</h2>
+  <pre>curl -X POST http://localhost:3000/print \
+  -H 'Content-Type: application/json' \
+  -d '{"type":"asset","printer":"10.10.0.5","serial":"SB-0001","name":"Robot Arm A","date":"2026-03-30"}'
+
+curl -X POST http://localhost:3000/print \
+  -H 'Content-Type: application/json' \
+  -d '{"type":"sku","printer":"10.10.0.4","sku":"WH-100","name":"Widget Handle"}'
+
+curl -X POST http://localhost:3000/print \
+  -H 'Content-Type: application/json' \
+  -d '{"type":"kit","printer":"10.10.0.4","sku":"KT-200","name":"Assembly Kit","date":"2026-03-30","who":"Rob"}'</pre>
+
+  <p class="note">Set PRINTER_QL and PRINTER_PT env vars to print sample labels on startup.</p>
+</body>
+</html>
