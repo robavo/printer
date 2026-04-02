@@ -1,4 +1,3 @@
-const https = require('https')
 const http = require('http')
 const net = require('net')
 const fs = require('fs')
@@ -9,19 +8,6 @@ const labels = require('./lib/labels')
 const PORT = process.env.PORT || 3000
 const PRINTER_QL = process.env.PRINTER_QL  // QL-810W for sku/kit
 const PRINTER_PT = process.env.PRINTER_PT  // P-900W for asset
-
-// TLS certs from mkcert (look in ./certs/ or use TLS_KEY/TLS_CERT env vars)
-const certDir = path.join(__dirname, 'certs')
-const tlsOpts = (() => {
-  try {
-    return {
-      key: fs.readFileSync(process.env.TLS_KEY || path.join(certDir, '192.168.4.10-key.pem')),
-      cert: fs.readFileSync(process.env.TLS_CERT || path.join(certDir, '192.168.4.10.pem')),
-    }
-  } catch {
-    return null
-  }
-})()
 
 function sendToPrinter(ip, buffer) {
   return new Promise((resolve, reject) => {
@@ -38,18 +24,8 @@ function sendToPrinter(ip, buffer) {
   })
 }
 
-const handler = async (req, res) => {
+const server = http.createServer(async (req, res) => {
   const route = url.parse(req.url).pathname
-
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204)
-    res.end()
-    return
-  }
 
   if (req.method === 'POST' && route === '/print') {
     let body = ''
@@ -109,16 +85,10 @@ const handler = async (req, res) => {
     res.writeHead(404, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ error: 'not found' }))
   }
-}
+})
 
-const server = tlsOpts
-  ? https.createServer(tlsOpts, handler)
-  : http.createServer(handler)
-
-const proto = tlsOpts ? 'https' : 'http'
 server.listen(PORT, () => {
-  console.log(`PRINTER SERVICE running on ${proto}://localhost:${PORT}`)
-  if (!tlsOpts) console.log('== No TLS certs found, running HTTP (set TLS_KEY/TLS_CERT or install mkcert)')
+  console.log(`PRINTER SERVICE running on http://localhost:${PORT}`)
   // printSamples()
 })
 
