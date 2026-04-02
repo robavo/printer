@@ -27,6 +27,16 @@ function sendToPrinter(ip, buffer) {
 const server = http.createServer(async (req, res) => {
   const route = url.parse(req.url).pathname
 
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204)
+    res.end()
+    return
+  }
+
   if (req.method === 'POST' && route === '/print') {
     let body = ''
     req.on('data', (chunk) => { body += chunk })
