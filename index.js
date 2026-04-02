@@ -10,8 +10,8 @@ const PORT = process.env.PORT || 3000
 const PRINTER_QL = process.env.PRINTER_QL  // QL-810W for sku/kit
 const PRINTER_PT = process.env.PRINTER_PT  // P-900W for asset
 
-// TLS certs from mkcert
-const certDir = process.env.CERT_DIR || path.join(require('os').homedir(), '.local/share/mkcert')
+// TLS certs from mkcert (look in ./certs/ or use TLS_KEY/TLS_CERT env vars)
+const certDir = path.join(__dirname, 'certs')
 const tlsOpts = (() => {
   try {
     return {
