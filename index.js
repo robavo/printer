@@ -53,6 +53,11 @@ const server = http.createServer(async (req, res) => {
             if (!data.sku) throw new Error('sku is required for kit')
             buffer = labels.kit(data)
             break
+          case 'sscc':
+            if (!data.code) throw new Error('code is required for sscc')
+            if (!data.sku) throw new Error('sku is required for sscc')
+            buffer = labels.sscc(data)
+            break
           default:
             res.writeHead(400, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ error: `unknown type: ${data.type}` }))
