@@ -38,28 +38,29 @@ test('what cannot go in the barcode is refused', () => {
   assert.throws(() => gs1.data(gs1.elements({ sku: 'A'.repeat(30), qty: 12345678, batch: 'B'.repeat(20), expiry: '271231' })), /the printer takes 64/)
 })
 
-test('the box label: landscape, a page long enough for the barcode, a GS1-128 with the content, the words', () => {
+test('the box label: small and portrait, the SKU, QTY, the order, and a QR code with the SKU and the quantity', () => {
+  // the description and the date may still be sent; the label does not print them (Rob, 11 Nov 2026)
   const buf = labels.box({ sku: 'BOLT M10 16HXT', name: 'Hex bolt M10 x 16', qty: 1000, ref: 'ORDER 57', date: '11/11/26' })
   const s = buf.toString('latin1')
-  assert.ok(s.startsWith('\x1bia\x00\x1b@\x1biL\x01'), 'ESC/P mode, initialise, landscape')
-  const at = s.indexOf('\x1b(C\x02\x00')
-  assert.ok(at > 0, 'the page length is set')
-  const length = buf[at + 5] + buf[at + 6] * 256
-  assert.strictEqual(length, labels.boxLength('91BOLT_M10_16HXT\x8637' + '1000'))
-  assert.ok(length >= 900 && length <= 3000)
-  // the barcode command: ESC i, type b (GS1-128), no characters under it, height 100, width small, B, the data, three backslashes
-  const bar = '\x1bitbr0h\x64\x00w1B91BOLT_M10_16HXT\x8637' + '1000\\\\\\'
-  assert.ok(s.includes(bar), 'the GS1-128 command and its data')
-  for (const words of ['BOLT_M10_16HXT', 'Hex bolt M10 x 16', 'QTY 1000', 'ORDER 57  11/11/26', '(91)BOLT_M10_16HXT(37)1000']) assert.ok(s.includes(words), words)
+  assert.ok(s.startsWith('\x1bia\x00\x1b@\x1biL\x00'), 'ESC/P mode, initialise, portrait')
+  assert.ok(!s.includes('\x1b(C'), 'no page length: the label is as long as what is on it')
+  // the QR command: ESC i Q, cell 6, model 2, error level M, automatic input, the content, three backslashes
+  const qr = '\x1biQ\x06\x02\x00\x00\x00\x00\x02\x00(91)BOLT_M10_16HXT(37)1000\\\\\\'
+  assert.ok(s.includes(qr), 'the QR code and its content')
+  for (const words of ['BOLT_M10_16HXT', 'QTY 1000', 'ORDER 57']) assert.ok(s.includes(words), words)
+  for (const gone of ['Hex bolt', '11/11/26', '\x1bitb']) assert.ok(!s.includes(gone), `not on the label: ${gone}`)
+  assert.ok(s.indexOf('BOLT_M10_16HXT') < s.indexOf('QTY 1000') && s.indexOf('QTY 1000') < s.indexOf('ORDER 57') && s.indexOf('ORDER 57') < s.indexOf('\x1biQ'), 'SKU, quantity, order, then the QR')
   assert.ok(s.endsWith('\x0c'), 'the form feed prints it')
   assert.ok(s.includes('\x1biC\x01'), 'cut after the label')
 })
 
-test('a longer barcode gets a longer label', () => {
-  const short = labels.boxLength('91A\x8637' + '1')
-  const long = labels.boxLength('91' + 'A'.repeat(30) + '\x8637' + '12345678' + '\x8610' + 'B'.repeat(18))
-  assert.strictEqual(short, 900)
-  assert.ok(long > short && long <= 3000)
+test('a long SKU goes on two lines, split at an underscore', () => {
+  assert.deepStrictEqual(labels.skuLines('PLC_SAFETY_SPC'), ['PLC_SAFETY_SPC'])
+  assert.deepStrictEqual(labels.skuLines('SENSOR_E3FR2_PNP_NC'), ['SENSOR_E3FR2', 'PNP_NC'])
+  assert.deepStrictEqual(labels.skuLines('CONNECTOR_SOCKET_20A_PANEL'), ['CONNECTOR_SOCKET', '20A_PANEL'])
+  assert.deepStrictEqual(labels.skuLines('A'.repeat(24)), ['A'.repeat(18), 'A'.repeat(6)])
+  const s = labels.box({ sku: 'SENSOR E3FR2 PNP NC', qty: 2 }).toString('latin1')
+  assert.ok(s.includes('SENSOR_E3FR2\r\nPNP_NC\r\n') && s.includes('(91)SENSOR_E3FR2_PNP_NC(37)2'), 'two lines of text, the whole SKU in the QR')
 })
 
 function pretendPrinter() {
@@ -103,7 +104,7 @@ test('the service prints a box label and a SKU label to the printer it is given,
     const sku = await post(port, { type: 'sku', printer: '127.0.0.1', sku: 'BOLT_M10_16HXT', name: 'Hex bolt' })
     assert.strictEqual(sku.status, 200)
     assert.strictEqual(printer.jobs.length, 2)
-    assert.ok(printer.jobs[0].toString('latin1').includes('91BOLT_M10_16HXT\x8637' + '500'))
+    assert.ok(printer.jobs[0].toString('latin1').includes('(91)BOLT_M10_16HXT(37)500'))
     assert.ok(printer.jobs[1].toString('latin1').includes('SHELFBOT PART'))
     const bad = await post(port, { type: 'box', printer: '127.0.0.1', sku: 'BOLT M10 16HXT' })
     assert.strictEqual(bad.status, 500)
