@@ -10,7 +10,7 @@ const HOST = process.env.HOST || undefined                    // the address to 
 const PRINTER_PORT = Number(process.env.PRINTER_PORT) || 9100 // the printers' raw port; the tests point it at a pretend printer
 const PRINTER_QL = process.env.PRINTER_QL  // QL-810W for sku/kit
 const PRINTER_PT = process.env.PRINTER_PT  // P-900W for asset
-const TYPES = ['asset', 'sku', 'kit', 'sscc', 'box']
+const TYPES = ['asset', 'sku', 'kit', 'sscc', 'gs1']
 
 function sendToPrinter(ip, buffer) {
   return new Promise((resolve, reject) => {
@@ -61,10 +61,11 @@ const server = http.createServer(async (req, res) => {
             if (!data.sku) throw new Error('sku is required for sscc')
             buffer = labels.sscc(data)
             break
-          case 'box':
-            if (!data.sku) throw new Error('sku is required for box')
-            if (data.qty === undefined || data.qty === null || data.qty === '') throw new Error('qty is required for box')
-            buffer = labels.box(data)
+          case 'gs1':
+          case 'box':   // the GS1 label's first name (until 11 Nov 2026); a hub not yet on the new name still sends it
+            if (!data.sku) throw new Error('sku is required for the GS1 label')
+            if (data.qty === undefined || data.qty === null || data.qty === '') throw new Error('qty is required for the GS1 label')
+            buffer = labels.gs1Label(data)
             break
           default:
             res.writeHead(400, { 'Content-Type': 'application/json' })

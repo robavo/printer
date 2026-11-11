@@ -1,4 +1,4 @@
-// The box label and its GS1 barcode content (node --test test/). No printer needed: the labels are checked as bytes, and the
+// The GS1 label and its content (node --test test/gs1.test.js). No printer needed: the labels are checked as bytes, and the
 // service is run against a pretend printer on the loopback.
 const test = require('node:test')
 const assert = require('node:assert')
@@ -38,9 +38,9 @@ test('what cannot go in the barcode is refused', () => {
   assert.throws(() => gs1.data(gs1.elements({ sku: 'A'.repeat(30), qty: 12345678, batch: 'B'.repeat(20), expiry: '271231' })), /the printer takes 64/)
 })
 
-test('the box label: small and portrait, the SKU, QTY, the order, and a QR code with the SKU and the quantity', () => {
+test('the GS1 label: small and portrait, the SKU, QTY, the order, and a QR code with the SKU and the quantity', () => {
   // the description and the date may still be sent; the label does not print them (Rob, 11 Nov 2026)
-  const buf = labels.box({ sku: 'BOLT M10 16HXT', name: 'Hex bolt M10 x 16', qty: 1000, ref: 'ORDER 57', date: '11/11/26' })
+  const buf = labels.gs1Label({ sku: 'BOLT M10 16HXT', name: 'Hex bolt M10 x 16', qty: 1000, ref: 'ORDER 57', date: '11/11/26' })
   const s = buf.toString('latin1')
   assert.ok(s.startsWith('\x1bia\x00\x1b@\x1biL\x00'), 'ESC/P mode, initialise, portrait')
   assert.ok(!s.includes('\x1b(C'), 'no page length: the label is as long as what is on it')
@@ -61,7 +61,7 @@ test('a long SKU goes on two lines, split at a space', () => {
   assert.deepStrictEqual(labels.skuLines('SENSOR E3FR2 PNP NC'), ['SENSOR E3FR2', 'PNP NC'])
   assert.deepStrictEqual(labels.skuLines('CONNECTOR SOCKET 20A PANEL'), ['CONNECTOR SOCKET', '20A PANEL'])
   assert.deepStrictEqual(labels.skuLines('A'.repeat(24)), ['A'.repeat(18), 'A'.repeat(6)])
-  const s = labels.box({ sku: 'SENSOR E3FR2 PNP NC', qty: 2, ref: 'ORDER #150', order: 150 }).toString('latin1')
+  const s = labels.gs1Label({ sku: 'SENSOR E3FR2 PNP NC', qty: 2, ref: 'ORDER #150', order: 150 }).toString('latin1')
   assert.ok(s.includes('SENSOR E3FR2\r\nPNP NC\r\n'), 'two lines of words')
   assert.ok(s.includes('(91)SENSOR_E3FR2_PNP_NC(37)2(400)150\\\\\\'), 'the whole SKU, the quantity and the order number in the QR')
   assert.ok(s.includes('ORDER #150'), 'the order as SBS writes it, with its hash')
@@ -99,7 +99,7 @@ function post(port, body) {
   })
 }
 
-test('the service prints a box label and a SKU label to the printer it is given, and says why when it cannot', async () => {
+test('the service prints a GS1 label and a SKU label to the printer it is given, and says why when it cannot', async () => {
   const printer = await pretendPrinter()
   const port = 3900 + Math.floor(process.pid % 90)
   const child = spawn(process.execPath, [path.join(__dirname, '..', 'index.js')], { env: { ...process.env, PORT: String(port), HOST: '127.0.0.1', PRINTER_PORT: String(printer.port) }, stdio: 'ignore' })
@@ -110,14 +110,18 @@ test('the service prints a box label and a SKU label to the printer it is given,
       up = await new Promise((resolve) => { http.get({ host: '127.0.0.1', port, path: '/health' }, (res) => { res.resume(); resolve(res.statusCode === 200) }).on('error', () => resolve(false)) })
     }
     assert.ok(up, 'the service answers /health')
-    const box = await post(port, { type: 'box', printer: '127.0.0.1', sku: 'BOLT M10 16HXT', name: 'Hex bolt', qty: 500, ref: 'ORDER 57' })
-    assert.deepStrictEqual(box, { status: 200, body: { ok: true, type: 'box', printer: '127.0.0.1' } })
+    const gs1Print = await post(port, { type: 'gs1', printer: '127.0.0.1', sku: 'BOLT M10 16HXT', name: 'Hex bolt', qty: 500, ref: 'ORDER 57' })
+    assert.deepStrictEqual(gs1Print, { status: 200, body: { ok: true, type: 'gs1', printer: '127.0.0.1' } })
     const sku = await post(port, { type: 'sku', printer: '127.0.0.1', sku: 'BOLT_M10_16HXT', name: 'Hex bolt' })
     assert.strictEqual(sku.status, 200)
     assert.strictEqual(printer.jobs.length, 2)
     assert.ok(printer.jobs[0].toString('latin1').includes('(91)BOLT_M10_16HXT(37)500'))
     assert.ok(printer.jobs[1].toString('latin1').includes('SHELFBOT PART'))
-    const bad = await post(port, { type: 'box', printer: '127.0.0.1', sku: 'BOLT M10 16HXT' })
+    // the label's first name, box, still prints it: a hub that has not been deployed since the rename sends that
+    const old = await post(port, { type: 'box', printer: '127.0.0.1', sku: 'BOLT M10 16HXT', qty: 5 })
+    assert.strictEqual(old.status, 200)
+    assert.ok(printer.jobs[2].toString('latin1').includes('(91)BOLT_M10_16HXT(37)5'))
+    const bad = await post(port, { type: 'gs1', printer: '127.0.0.1', sku: 'BOLT M10 16HXT' })
     assert.strictEqual(bad.status, 500)
     assert.match(bad.body.error, /qty is required/)
     const nowhere = await post(port, { type: 'sku', printer: '127.0.0.9', sku: 'X' })   // nothing listens there
