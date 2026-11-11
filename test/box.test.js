@@ -47,20 +47,31 @@ test('the box label: small and portrait, the SKU, QTY, the order, and a QR code 
   // the QR command: ESC i Q, cell 6, model 2, error level M, automatic input, the content, three backslashes
   const qr = '\x1biQ\x06\x02\x00\x00\x00\x00\x02\x00(91)BOLT_M10_16HXT(37)1000\\\\\\'
   assert.ok(s.includes(qr), 'the QR code and its content')
-  for (const words of ['BOLT_M10_16HXT', 'QTY 1000', 'ORDER 57']) assert.ok(s.includes(words), words)
+  // the words are the SKU as SBS names it, with spaces; the underscores are in the QR only (Rob, 11 Nov 2026)
+  for (const words of ['BOLT M10 16HXT', 'QTY 1000', 'ORDER 57']) assert.ok(s.includes(words), words)
   for (const gone of ['Hex bolt', '11/11/26', '\x1bitb']) assert.ok(!s.includes(gone), `not on the label: ${gone}`)
-  assert.ok(s.indexOf('BOLT_M10_16HXT') < s.indexOf('QTY 1000') && s.indexOf('QTY 1000') < s.indexOf('ORDER 57') && s.indexOf('ORDER 57') < s.indexOf('\x1biQ'), 'SKU, quantity, order, then the QR')
+  assert.strictEqual(s.split('BOLT_M10_16HXT').length - 1, 1, 'the underscored SKU appears once, inside the QR')
+  assert.ok(s.indexOf('BOLT M10 16HXT') < s.indexOf('QTY 1000') && s.indexOf('QTY 1000') < s.indexOf('ORDER 57') && s.indexOf('ORDER 57') < s.indexOf('\x1biQ'), 'SKU, quantity, order, then the QR')
   assert.ok(s.endsWith('\x0c'), 'the form feed prints it')
   assert.ok(s.includes('\x1biC\x01'), 'cut after the label')
 })
 
-test('a long SKU goes on two lines, split at an underscore', () => {
-  assert.deepStrictEqual(labels.skuLines('PLC_SAFETY_SPC'), ['PLC_SAFETY_SPC'])
-  assert.deepStrictEqual(labels.skuLines('SENSOR_E3FR2_PNP_NC'), ['SENSOR_E3FR2', 'PNP_NC'])
-  assert.deepStrictEqual(labels.skuLines('CONNECTOR_SOCKET_20A_PANEL'), ['CONNECTOR_SOCKET', '20A_PANEL'])
+test('a long SKU goes on two lines, split at a space', () => {
+  assert.deepStrictEqual(labels.skuLines('PLC SAFETY SPC'), ['PLC SAFETY SPC'])
+  assert.deepStrictEqual(labels.skuLines('SENSOR E3FR2 PNP NC'), ['SENSOR E3FR2', 'PNP NC'])
+  assert.deepStrictEqual(labels.skuLines('CONNECTOR SOCKET 20A PANEL'), ['CONNECTOR SOCKET', '20A PANEL'])
   assert.deepStrictEqual(labels.skuLines('A'.repeat(24)), ['A'.repeat(18), 'A'.repeat(6)])
-  const s = labels.box({ sku: 'SENSOR E3FR2 PNP NC', qty: 2 }).toString('latin1')
-  assert.ok(s.includes('SENSOR_E3FR2\r\nPNP_NC\r\n') && s.includes('(91)SENSOR_E3FR2_PNP_NC(37)2'), 'two lines of text, the whole SKU in the QR')
+  const s = labels.box({ sku: 'SENSOR E3FR2 PNP NC', qty: 2, ref: 'ORDER #150', order: 150 }).toString('latin1')
+  assert.ok(s.includes('SENSOR E3FR2\r\nPNP NC\r\n'), 'two lines of words')
+  assert.ok(s.includes('(91)SENSOR_E3FR2_PNP_NC(37)2(400)150\\\\\\'), 'the whole SKU, the quantity and the order number in the QR')
+  assert.ok(s.includes('ORDER #150'), 'the order as SBS writes it, with its hash')
+})
+
+test('the order number is field (400), before batch and expiry', () => {
+  const els = gs1.elements({ sku: 'GLOVE M', qty: 20, order: 151, batch: 'LOT42A', expiry: '2027-12-31' })
+  assert.strictEqual(gs1.text(els), '(91)GLOVE_M(37)20(400)151(10)LOT42A(17)271231')
+  assert.strictEqual(gs1.text(gs1.elements({ sku: 'GLOVE M', qty: 20 })), '(91)GLOVE_M(37)20')
+  assert.throws(() => gs1.elements({ sku: 'A', qty: 1, order: 'PO (9)' }), /order cannot go in a GS1 barcode/)
 })
 
 function pretendPrinter() {
