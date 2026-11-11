@@ -1,0 +1,21 @@
+# The print service on the NUC (design-system, 11 Nov 2026; Rob: SBS lives on the NUC, on the office network, and prints its own
+# labels there; the Shelfbot server does not print for it). A user unit of the account that owns this clone; it listens on the
+# loopback only, the hub on the same box is its one caller (PRINTER_SERVICE_URL=http://127.0.0.1:3000 in the hub's settings).
+# The printers are named per job by their address (SBS Settings: the parts label printer, the unit label printer).
+#   cp printer-nuc.service ~/.config/systemd/user/printer.service
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now printer
+[Unit]
+Description=Shelfbot print service on the NUC (labels for SBS; Brother QL-810W and P-900W on port 9100)
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/sb/printer
+Environment=PORT=3000
+Environment=HOST=127.0.0.1
+ExecStart=/usr/local/bin/node /home/sb/printer/index.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

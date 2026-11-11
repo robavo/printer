@@ -6,12 +6,15 @@ const url = require('url')
 const labels = require('./lib/labels')
 
 const PORT = process.env.PORT || 3000
+const HOST = process.env.HOST || undefined                    // the address to listen on; unset = every interface, as before (the NUC sets 127.0.0.1)
+const PRINTER_PORT = Number(process.env.PRINTER_PORT) || 9100 // the printers' raw port; the tests point it at a pretend printer
 const PRINTER_QL = process.env.PRINTER_QL  // QL-810W for sku/kit
 const PRINTER_PT = process.env.PRINTER_PT  // P-900W for asset
+const TYPES = ['asset', 'sku', 'kit', 'sscc', 'box']
 
 function sendToPrinter(ip, buffer) {
   return new Promise((resolve, reject) => {
-    const stream = net.connect(9100, ip, () => {
+    const stream = net.connect(PRINTER_PORT, ip, () => {
       stream.write(buffer, () => {
         stream.end()
       })
@@ -58,6 +61,11 @@ const server = http.createServer(async (req, res) => {
             if (!data.sku) throw new Error('sku is required for sscc')
             buffer = labels.sscc(data)
             break
+          case 'box':
+            if (!data.sku) throw new Error('sku is required for box')
+            if (data.qty === undefined || data.qty === null || data.qty === '') throw new Error('qty is required for box')
+            buffer = labels.box(data)
+            break
           default:
             res.writeHead(400, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ error: `unknown type: ${data.type}` }))
@@ -75,6 +83,9 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ error: err.message }))
       }
     })
+  } else if (req.method === 'GET' && route === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ ok: true, service: 'printer', types: TYPES }))
   } else if (req.method === 'GET' && (route === '/' || route === '/index.html')) {
     const file = path.join(__dirname, 'html', 'index.html')
     fs.readFile(file, (err, content) => {
@@ -92,8 +103,8 @@ const server = http.createServer(async (req, res) => {
   }
 })
 
-server.listen(PORT, () => {
-  console.log(`PRINTER SERVICE running on http://localhost:${PORT}`)
+server.listen(PORT, HOST, () => {
+  console.log(`PRINTER SERVICE running on http://${HOST || 'localhost'}:${PORT}`)
   // printSamples()
 })
 
