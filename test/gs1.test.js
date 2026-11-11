@@ -67,6 +67,18 @@ test('a long SKU goes on two lines, split at a space', () => {
   assert.ok(s.includes('ORDER #150'), 'the order as SBS writes it, with its hash')
 })
 
+test('more than one label: which of how many, beside the quantity', () => {
+  const s = labels.gs1Label({ sku: 'BOLT M10 16HXT', qty: 1000, count: '2 OF 2', ref: 'ORDER #151', order: 151 }).toString('latin1')
+  // QTY in the big bold letters, then on the same line the count in the order line's letters (bold off, 36 dots), then the order alone
+  assert.ok(s.includes('QTY 1000\x1bF\x1bX\x00\x24\x00  2 OF 2\x1bE\r\n'), 'the count follows the quantity on its line, smaller')
+  assert.ok(s.includes('ORDER #151\r\n'), 'the order line is the order alone')
+  assert.ok(s.includes('(91)BOLT_M10_16HXT(37)1000(400)151\\\\\\'), 'the QR is the same on every label of the run')
+  const one = labels.gs1Label({ sku: 'BOLT M10 16HXT', qty: 1000, ref: 'ORDER #151', order: 151 }).toString('latin1')
+  assert.ok(one.includes('QTY 1000\r\n') && !one.includes(' OF '), 'a single label has no count')
+  const long = labels.gs1Label({ sku: 'A', qty: 1, count: '12 OF 50 AND MORE', ref: 'ORDER #1' }).toString('latin1')
+  assert.ok(long.includes('  12 OF 50 \x1bE\r\n'), 'a count is kept to nine characters')
+})
+
 test('the order number is field (400), before batch and expiry', () => {
   const els = gs1.elements({ sku: 'GLOVE M', qty: 20, order: 151, batch: 'LOT42A', expiry: '2027-12-31' })
   assert.strictEqual(gs1.text(els), '(91)GLOVE_M(37)20(400)151(10)LOT42A(17)271231')
