@@ -128,7 +128,12 @@ test('the service prints a GS1 label and a SKU label to the printer it is given,
     assert.strictEqual(sku.status, 200)
     assert.strictEqual(printer.jobs.length, 2)
     assert.ok(printer.jobs[0].toString('latin1').includes('(91)BOLT_M10_16HXT(37)500'))
-    assert.ok(printer.jobs[1].toString('latin1').includes('SHELFBOT PART'))
+    // the SKU label: the SKU and the QR code, no heading and no description (Rob, 12 Nov 2026)
+    const skuJob = printer.jobs[1].toString('latin1')
+    assert.ok(skuJob.includes('BOLT M10 16HXT'))
+    assert.ok(skuJob.includes('BOLT_M10_16HXT'))
+    assert.ok(!skuJob.includes('SHELFBOT PART'))
+    assert.ok(!skuJob.includes('Hex') && !skuJob.includes('bolt'))
     // the label's first name, box, still prints it: a hub that has not been deployed since the rename sends that
     const old = await post(port, { type: 'box', printer: '127.0.0.1', sku: 'BOLT M10 16HXT', qty: 5 })
     assert.strictEqual(old.status, 200)
