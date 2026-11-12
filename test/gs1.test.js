@@ -86,6 +86,17 @@ test('the order number is field (400), before batch and expiry', () => {
   assert.throws(() => gs1.elements({ sku: 'A', qty: 1, order: 'PO (9)' }), /order cannot go in a GS1 barcode/)
 })
 
+test('the box serial is field (21), last, in the QR only', () => {
+  assert.strictEqual(gs1.text(gs1.elements({ sku: 'RIVET AS4 4 BLK', qty: 2000, order: 151, serial: 1042 })), '(91)RIVET_AS4_4_BLK(37)2000(400)151(21)1042')
+  assert.strictEqual(gs1.text(gs1.elements({ sku: 'GLOVE M', qty: 20, order: 151, batch: 'LOT42A', expiry: '2027-12-31', serial: '7' })), '(91)GLOVE_M(37)20(400)151(10)LOT42A(17)271231(21)7')
+  assert.throws(() => gs1.elements({ sku: 'A', qty: 1, serial: '(1)' }), /serial cannot go in a GS1 barcode/)
+  const s = labels.gs1Label({ sku: 'BOLT M10 16HXT', qty: 1000, count: '2 OF 2', ref: 'ORDER #151', order: 151, serial: 1042 }).toString('latin1')
+  assert.ok(s.includes('(91)BOLT_M10_16HXT(37)1000(400)151(21)1042\\\\\\'), 'the serial closes the QR')
+  assert.strictEqual(s.split('1042').length - 1, 1, 'the serial is not in the words')
+  // a label sent the old way, with no serial, prints as before
+  assert.ok(labels.gs1Label({ sku: 'BOLT M10 16HXT', qty: 1000, order: 151 }).toString('latin1').includes('(400)151\\\\\\'))
+})
+
 function pretendPrinter() {
   return new Promise((resolve) => {
     const jobs = []
